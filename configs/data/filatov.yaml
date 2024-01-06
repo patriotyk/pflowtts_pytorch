@@ -3,7 +3,7 @@ name: filatov
 train_filelist_path: train.txt
 valid_filelist_path: val.txt
 batch_size: 16
-num_workers: 8
+num_workers: 2
 pin_memory: True
 cleaners: []
 add_blank: True
