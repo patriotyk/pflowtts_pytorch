@@ -1,0 +1,21 @@
+_target_: pflow.data.text_mel_datamodule.TextMelDataModule
+name: filatov
+train_filelist_path: filatov6/train.txt
+valid_filelist_path: filatov6/val.txt
+batch_size: 32
+num_workers: 8
+pin_memory: True
+cleaners: []
+add_blank: True
+n_spks: 1
+n_fft: 1024
+n_feats: 80
+sample_rate: 22050
+hop_length: 256
+win_length: 1024
+f_min: 0
+f_max: 8000
+data_statistics:  # Computed for filatov6 ataset
+  mel_mean: -3.96983003616333
+  mel_std: 2.27445912361145
+seed: ${seed}
