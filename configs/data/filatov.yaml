@@ -1,7 +1,7 @@
 _target_: pflow.data.text_mel_datamodule.TextMelDataModule
 name: filatov
-train_filelist_path: filatov6/train.txt
-valid_filelist_path: filatov6/val.txt
+train_filelist_path: train.txt
+valid_filelist_path: val.txt
 batch_size: 32
 num_workers: 8
 pin_memory: True
