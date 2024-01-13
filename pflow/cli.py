@@ -3,11 +3,15 @@ import datetime as dt
 import os
 import warnings
 from pathlib import Path
+import torchaudio
 
 import matplotlib.pyplot as plt
 import numpy as np
 import soundfile as sf
 import torch
+
+import sys
+sys.path.append('..')
 
 from pflow.hifigan.config import v1
 from pflow.hifigan.denoiser import Denoiser
@@ -16,17 +20,34 @@ from pflow.hifigan.models import Generator as HiFiGAN
 from pflow.models.pflow_tts import pflowTTS
 from pflow.text import sequence_to_text, text_to_sequence
 from pflow.utils.utils import assert_model_downloaded, get_user_data_dir, intersperse
+from pflow.data.text_mel_datamodule import mel_spectrogram
+from pflow.utils.model import normalize
 
-PFLOW_URLS = {}
+PFLOW_URLS = {'checkpoint_epoch=499': 'http://toloka.patriotyk.name:9090/tts_corpus/checkpoint_epoch%3D349.ckpt'}
 
 VOCODER_URLS = {
     "hifigan_T2_v1": "https://drive.google.com/file/d/14NENd4equCBLyyCSke114Mv6YR_j_uFs/view?usp=drive_link",
-    "hifigan_univ_v1": "https://drive.google.com/file/d/1qpgI41wNXFcH-iKq1Y42JlBC9j0je8PW/view?usp=drive_link",
+    "hifigan_univ_v1": "http://toloka.patriotyk.name:9090/tts_corpus/g_02500000",
 }
 
 MULTISPEAKER_MODEL = {}
 
 SINGLESPEAKER_MODEL = {}
+
+
+wav, sr = torchaudio.load('prompt.wav')
+
+prompt = mel_spectrogram(
+            wav,
+            1024,
+            80,
+            22050,
+            256,
+            1024,
+            0,
+            8000,
+            center=False,
+        )[:,:,:264]
 
 
 def plot_spectrogram_to_numpy(spectrogram, filename):
@@ -43,7 +64,7 @@ def plot_spectrogram_to_numpy(spectrogram, filename):
 def process_text(i: int, text: str, device: torch.device):
     print(f"[{i}] - Input text: {text}")
     x = torch.tensor(
-        intersperse(text_to_sequence(text, ["english_cleaners2"]), 0),
+        intersperse(text_to_sequence(text, ["ukr_cleaners"]), 0),
         dtype=torch.long,
         device=device,
     )[None]
@@ -66,10 +87,10 @@ def get_texts(args):
 def assert_required_models_available(args):
     save_dir = get_user_data_dir()
     if not hasattr(args, "checkpoint_path") and args.checkpoint_path is None:
-        model_path = args.checkpoint_path
-    else:
         model_path = save_dir / f"{args.model}.ckpt"
         assert_model_downloaded(model_path, PFLOW_URLS[args.model])
+    else:
+        model_path = args.checkpoint_path
 
     vocoder_path = save_dir / f"{args.vocoder}"
     assert_model_downloaded(vocoder_path, VOCODER_URLS[args.vocoder])
@@ -326,8 +347,8 @@ def batched_synthesis(args, device, model, vocoder, denoiser, texts, spk):
             batch["x_lengths"].to(device),
             n_timesteps=args.steps,
             temperature=args.temperature,
-            spks=spk,
             length_scale=args.speaking_rate,
+            prompt= []
         )
 
         output["waveform"] = to_waveform(output["mel"], vocoder, denoiser)
@@ -363,13 +384,14 @@ def unbatched_synthesis(args, device, model, vocoder, denoiser, texts, spk):
 
         print(f"[] Whisking PFlow-T(ea)TS for: {i}")
         start_t = dt.datetime.now()
+
         output = model.synthesise(
             text_processed["x"],
             text_processed["x_lengths"],
             n_timesteps=args.steps,
             temperature=args.temperature,
-            spks=spk,
             length_scale=args.speaking_rate,
+            prompt= normalize(prompt, model.mel_mean, model.mel_std)
         )
         output["waveform"] = to_waveform(output["mel"], vocoder, denoiser)
         # RTF with HiFiGAN

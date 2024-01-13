@@ -206,6 +206,7 @@ def get_user_data_dir(appname="pflow_tts"):
 
 
 def assert_model_downloaded(checkpoint_path, url, use_wget=False):
+    print(checkpoint_path)
     if Path(checkpoint_path).exists():
         log.debug(f"[+] Model already present at {checkpoint_path}!")
         return

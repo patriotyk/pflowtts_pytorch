@@ -43,3 +43,7 @@ gdown
 wget
 seaborn
 beartype
+regex
+ukrainian_word_stress
+ipa_uk@git+https://github.com/lang-uk/ipa-uk.git
+num2words@git+https://github.com/patriotyk/num2words.git
