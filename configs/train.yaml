@@ -8,7 +8,7 @@ defaults:
   - model: pflow
   - callbacks: default
   - logger: tensorboard # set logger here or use command line (e.g. `python train.py logger=tensorboard`)
-  - trainer: default
+  - trainer: ddp
   - paths: default
   - extras: default
   - hydra: default
@@ -45,7 +45,7 @@ train: True
 test: True
 
 # simply provide checkpoint path to resume training
-ckpt_path: "checkpoint_epoch=349.ckpt" 
+ckpt_path: null
 
 # seed for random number generators in pytorch, numpy and python.random
 seed: 1234
