@@ -4,8 +4,8 @@ defaults:
 
 _target_: pflow.data.text_mel_datamodule.TextMelDataModule
 name: multiplier
-train_filelist_path: multispeaker/train.txt
-valid_filelist_path: multispeaker/val.txt
+train_filelist_path: /pflowtts_pytorch/multispeaker/train.txt
+valid_filelist_path: /pflowtts_pytorch/multispeaker/val.txt
 batch_size: 32
 add_blank: True
 n_spks: 21
