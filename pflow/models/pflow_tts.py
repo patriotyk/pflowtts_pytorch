@@ -52,15 +52,15 @@ class pflowTTS(BaseLightningClass):  #
             speech_in_channels,
         )
 
-        # self.aligner = Aligner(
-        #     dim_in=encoder.encoder_params.n_feats,
-        #     dim_hidden=encoder.encoder_params.n_feats,
-        #     attn_channels=encoder.encoder_params.n_feats,
-        #     )
+        self.aligner = Aligner(
+            dim_in=encoder.encoder_params.n_feats,
+            dim_hidden=encoder.encoder_params.n_feats,
+            attn_channels=encoder.encoder_params.n_feats,
+            )
         
-        # self.aligner_loss = ForwardSumLoss()
-        # self.bin_loss = BinLoss()
-        # self.aligner_bin_loss_weight = 0.0
+        self.aligner_loss = ForwardSumLoss()
+        self.bin_loss = BinLoss()
+        self.aligner_bin_loss_weight = 0.0
 
         self.decoder = CFM(
             in_channels=encoder.encoder_params.n_feats,
@@ -125,44 +125,44 @@ class pflowTTS(BaseLightningClass):  #
         y_max_length = y.shape[-1]
         
         y_mask = sequence_mask(y_lengths, y_max_length).unsqueeze(1).to(x_mask)
-        attn_mask = x_mask.unsqueeze(-1) * y_mask.unsqueeze(2)
+        # attn_mask = x_mask.unsqueeze(-1) * y_mask.unsqueeze(2)
         
-        with torch.no_grad():
-        # negative cross-entropy
-            s_p_sq_r = torch.ones_like(mu_x) # [b, d, t]
-            # s_p_sq_r = torch.exp(-2 * logx) 
-            neg_cent1 = torch.sum(
-                -0.5 * math.log(2 * math.pi)- torch.zeros_like(mu_x), [1], keepdim=True
-            )
-            # neg_cent1 = torch.sum(
-            #     -0.5 * math.log(2 * math.pi) - logx, [1], keepdim=True
-            #     ) # [b, 1, t_s]
-            neg_cent2 = torch.einsum("bdt, bds -> bts", -0.5 * (y**2), s_p_sq_r)
-            neg_cent3 = torch.einsum("bdt, bds -> bts", y, (mu_x * s_p_sq_r))
-            neg_cent4 = torch.sum(
-                -0.5 * (mu_x**2) * s_p_sq_r, [1], keepdim=True
-            )  
-            neg_cent = neg_cent1 + neg_cent2 + neg_cent3 + neg_cent4
-            
-            attn_mask = torch.unsqueeze(x_mask, 2) * torch.unsqueeze(y_mask, -1)
-            from pflow.utils.monotonic_align import maximum_path
-            attn = (
-                maximum_path(neg_cent, attn_mask.squeeze(1)).unsqueeze(1).detach()
-            )
-
-        logw_ = torch.log(1e-8 + attn.sum(2)) * x_mask
-        dur_loss = duration_loss(logw, logw_, x_lengths)
-
-        # aln_hard, aln_soft, aln_log, aln_mask = self.aligner(
-        #     mu_x.transpose(1,2), x_mask, y, y_mask
+        # with torch.no_grad():
+        # # negative cross-entropy
+        #     s_p_sq_r = torch.ones_like(mu_x) # [b, d, t]
+        #     # s_p_sq_r = torch.exp(-2 * logx) 
+        #     neg_cent1 = torch.sum(
+        #         -0.5 * math.log(2 * math.pi)- torch.zeros_like(mu_x), [1], keepdim=True
         #     )
-        # attn = aln_mask.transpose(1,2).unsqueeze(1)
-        # align_loss = self.aligner_loss(aln_log, x_lengths, y_lengths)
-        # if self.aligner_bin_loss_weight > 0.:
-        #     align_bin_loss = self.bin_loss(aln_mask, aln_log, x_lengths) * self.aligner_bin_loss_weight
-        #     align_loss = align_loss + align_bin_loss
-        # dur_loss = F.l1_loss(logw, attn.sum(2))
-        # dur_loss = dur_loss + align_loss
+        #     # neg_cent1 = torch.sum(
+        #     #     -0.5 * math.log(2 * math.pi) - logx, [1], keepdim=True
+        #     #     ) # [b, 1, t_s]
+        #     neg_cent2 = torch.einsum("bdt, bds -> bts", -0.5 * (y**2), s_p_sq_r)
+        #     neg_cent3 = torch.einsum("bdt, bds -> bts", y, (mu_x * s_p_sq_r))
+        #     neg_cent4 = torch.sum(
+        #         -0.5 * (mu_x**2) * s_p_sq_r, [1], keepdim=True
+        #     )  
+        #     neg_cent = neg_cent1 + neg_cent2 + neg_cent3 + neg_cent4
+            
+        #     attn_mask = torch.unsqueeze(x_mask, 2) * torch.unsqueeze(y_mask, -1)
+        #     from pflow.utils.monotonic_align import maximum_path
+        #     attn = (
+        #         maximum_path(neg_cent, attn_mask.squeeze(1)).unsqueeze(1).detach()
+        #     )
+
+        # logw_ = torch.log(1e-8 + attn.sum(2)) * x_mask
+        # dur_loss = duration_loss(logw, logw_, x_lengths)
+
+        aln_hard, aln_soft, aln_log, aln_mask = self.aligner(
+            mu_x.transpose(1,2), x_mask, y, y_mask
+            )
+        attn = aln_mask.transpose(1,2).unsqueeze(1)
+        align_loss = self.aligner_loss(aln_log, x_lengths, y_lengths)
+        if self.aligner_bin_loss_weight > 0.:
+            align_bin_loss = self.bin_loss(aln_mask, aln_log, x_lengths) * self.aligner_bin_loss_weight
+            align_loss = align_loss + align_bin_loss
+        dur_loss = F.l1_loss(logw, attn.sum(2))
+        dur_loss = dur_loss + align_loss
         
         # Align encoded text with mel-spectrogram and get mu_y segment
         attn = attn.squeeze(1).transpose(1,2)
