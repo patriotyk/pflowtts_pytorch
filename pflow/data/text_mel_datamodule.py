@@ -157,8 +157,8 @@ class TextMelDataset(torch.utils.data.Dataset):
         if self.n_spks > 1:
             filepath, spk, text = (
                 filepath_and_text[0],
-                int(filepath_and_text[1]),
                 filepath_and_text[2],
+                int(filepath_and_text[1])
             )
         else:
             filepath, text = filepath_and_text[0], filepath_and_text[1]
