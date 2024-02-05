@@ -10,5 +10,5 @@ batch_size: 32
 add_blank: True
 n_spks: 21
 data_statistics:  # Computed for multispeaker dataset
-  mel_mean: 0
-  mel_std: 0
+  mel_mean: -5.044746398925781                                                                                                                                                                           
+  mel_std: 2.4867489337921143            
