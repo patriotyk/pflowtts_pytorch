@@ -25,7 +25,7 @@ pytest          # tests
 phonemizer      # phonemization of text
 tensorboard
 librosa
-Cython
+Cython==3.0.7
 numpy
 einops
 inflect
